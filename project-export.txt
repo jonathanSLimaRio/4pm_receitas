@@ -1,0 +1,1239 @@
+- backend/
+  - package.json
+    ```json
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start:dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts",
+    "db:push": "npx prisma db push",
+    "db:studio": "npx prisma studio",
+    "prisma:generate": "prisma generate"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@prisma/client": "^6.9.0",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.14.1",
+    "swagger-ui-express": "^5.0.1",
+    "zod": "^3.25.64"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.0.3",
+    "@types/swagger-ui-express": "^4.1.8",
+    "prisma": "^6.9.0",
+    "ts-node-dev": "^2.0.0",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.8.3"
+  }
+}
+    ```
+  - prisma/
+    - migrations/
+      - 20250616163822_init/
+      - 20250616164453_update_user_fields/
+      - 20250616175332_ajusta_unico_receita/
+  - src/
+    - config/
+      - swagger.ts
+        ```ts
+import swaggerUi from "swagger-ui-express";
+import { Express } from "express";
+
+const swaggerDocument = {
+  openapi: "3.0.0",
+  info: {
+    title: "Recipe API",
+    version: "1.0.0",
+    description: "API documentation for Recipe App",
+  },
+  components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "JWT",
+      },
+    },
+    schemas: {
+      RegisterUser: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          login: { type: "string" },
+          password: { type: "string" },
+        },
+        required: ["login", "password"],
+      },
+      LoginUser: {
+        type: "object",
+        properties: {
+          login: { type: "string" },
+          password: { type: "string" },
+        },
+        required: ["login", "password"],
+      },
+      Recipe: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+          categoryId: { type: "integer" },
+          preparationTime: { type: "integer" },
+          servings: { type: "integer" },
+          preparationMethod: { type: "string" },
+          ingredients: { type: "string" },
+        },
+        required: [
+          "name",
+          "categoryId",
+          "preparationTime",
+          "servings",
+          "preparationMethod",
+          "ingredients",
+        ],
+      },
+      Category: {
+        type: "object",
+        properties: {
+          name: { type: "string" },
+        },
+        required: ["name"],
+      },
+    },
+  },
+  paths: {
+    "/register": {
+      post: {
+        tags: ["Auth"],
+        summary: "Register new user",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/RegisterUser" },
+            },
+          },
+        },
+        responses: {
+          "201": { description: "User created" },
+          "400": { description: "User already exists or validation failed" },
+        },
+      },
+    },
+    "/login": {
+      post: {
+        tags: ["Auth"],
+        summary: "Login user",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/LoginUser" },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Login successful" },
+          "400": { description: "Invalid credentials" },
+        },
+      },
+    },
+    "/logout": {
+      post: {
+        tags: ["Auth"],
+        summary: "Log out user",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "200": { description: "Logoff simulated (token required)" },
+          "401": { description: "Unauthorized" },
+        },
+      },
+    },
+    "/recipes": {
+      get: {
+        tags: ["Recipe"],
+        summary: "List user's recipes",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "200": { description: "Recipe list" },
+        },
+      },
+      post: {
+        tags: ["Recipe"],
+        summary: "Create recipe",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/Recipe" },
+            },
+          },
+        },
+        responses: {
+          "201": { description: "Recipe created" },
+          "400": { description: "Validation failed" },
+        },
+      },
+    },
+    "/recipes/{id}": {
+      get: {
+        tags: ["Recipe"],
+        summary: "Get single recipe",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "200": { description: "Recipe details" },
+          "404": { description: "Not found" },
+        },
+      },
+      put: {
+        tags: ["Recipe"],
+        summary: "Update recipe",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/Recipe" },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Updated" },
+          "400": { description: "Validation failed" },
+        },
+      },
+      delete: {
+        tags: ["Recipe"],
+        summary: "Delete recipe",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "204": { description: "Deleted" },
+        },
+      },
+    },
+    "/categories": {
+      get: {
+        tags: ["Category"],
+        summary: "List all categories",
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "200": { description: "List of categories" },
+        },
+      },
+      post: {
+        tags: ["Category"],
+        summary: "Create a category",
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/Category" },
+            },
+          },
+        },
+        responses: {
+          "201": { description: "Category created" },
+        },
+      },
+    },
+    "/categories/{id}": {
+      get: {
+        tags: ["Category"],
+        summary: "Get category by ID",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "200": { description: "Category found" },
+          "404": { description: "Not found" },
+        },
+      },
+      put: {
+        tags: ["Category"],
+        summary: "Update category",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/Category" },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Category updated" },
+        },
+      },
+      delete: {
+        tags: ["Category"],
+        summary: "Delete category",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: { type: "integer" },
+          },
+        ],
+        security: [{ bearerAuth: [] }],
+        responses: {
+          "204": { description: "Category deleted" },
+        },
+      },
+    },
+  },
+};
+
+export function setupSwagger(app: Express) {
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+}
+
+        ```
+    - index.ts
+      ```ts
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import { setupSwagger } from "./config/swagger";
+import AuthRoutes from "./modules/user/AuthController";
+import RecipeRoutes from "./modules/recipe/RecipeController";
+import CategoryRoutes from "./modules/category/CategoryController";
+
+dotenv.config();
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+setupSwagger(app);
+
+app.use(AuthRoutes);
+app.use(RecipeRoutes);
+app.use(CategoryRoutes);
+
+
+app.listen(3000, () => {
+  console.log("Server running at http://localhost:3000");
+  console.log("Swagger docs at http://localhost:3000/api-docs");
+});
+
+      ```
+    - modules/
+      - auth/
+        - AuthMiddleware.ts
+          ```ts
+import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
+
+interface JwtPayload {
+  userId: number;
+}
+
+export function authenticateToken(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader?.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ error: "Token not provided" });
+  }
+
+  try {
+    const secret = process.env.JWT_SECRET || "secret";
+    const decoded = jwt.verify(token, secret) as JwtPayload;
+
+    req.user = { id: decoded.userId };
+
+    next();
+  } catch (err) {
+    return res.status(403).json({ error: "Invalid token" });
+  }
+}
+
+          ```
+      - category/
+        - CategoryController.ts
+          ```ts
+import { Router } from "express";
+import { CategoryService } from "./CategoryService";
+import { authenticateToken } from "../auth/AuthMiddleware";
+import { CreateCategoryDto } from "./dto/CreateCategoryDto";
+import { UpdateCategoryDto } from "./dto/UpdateCategoryDto";
+
+const router = Router();
+const service = new CategoryService();
+
+router.use(authenticateToken);
+
+router.get("/categories", async (req, res) => {
+  const categories = await service.list();
+  res.json(categories);
+});
+
+router.get("/categories/:id", async (req, res) => {
+  const category = await service.getById(+req.params.id);
+  if (!category) return res.status(404).json({ error: "Not found" });
+  res.json(category);
+});
+
+router.post("/categories", async (req, res) => {
+  const dto = req.body as CreateCategoryDto;
+  const category = await service.create(dto);
+  res.status(201).json(category);
+});
+
+router.put("/categories/:id", async (req, res) => {
+  const dto = req.body as UpdateCategoryDto;
+  const category = await service.update(+req.params.id, dto);
+  res.json(category);
+});
+
+router.delete("/categories/:id", async (req, res) => {
+  await service.delete(+req.params.id);
+  res.status(204).send();
+});
+
+export default router;
+
+          ```
+        - CategoryService.ts
+          ```ts
+import { prisma } from "@/prisma/client";
+import { CreateCategoryDto } from "./dto/CreateCategoryDto";
+import { UpdateCategoryDto } from "./dto/UpdateCategoryDto";
+
+export class CategoryService {
+  async list() {
+    return prisma.category.findMany();
+  }
+
+  async getById(id: number) {
+    return prisma.category.findUnique({ where: { id } });
+  }
+
+  async create(data: CreateCategoryDto) {
+    return prisma.category.create({ data });
+  }
+
+  async update(id: number, data: UpdateCategoryDto) {
+    return prisma.category.update({ where: { id }, data });
+  }
+
+  async delete(id: number) {
+    return prisma.category.delete({ where: { id } });
+  }
+}
+
+          ```
+        - dto/
+          - CreateCategoryDto.ts
+            ```ts
+export interface CreateCategoryDto {
+  name: string;
+}
+            ```
+          - UpdateCategoryDto.ts
+            ```ts
+export interface UpdateCategoryDto {
+  name: string;
+}
+            ```
+      - recipe/
+        - dto/
+          - CreateRecipeDto.ts
+            ```ts
+import { z } from "zod";
+
+export const CreateRecipeSchema = z.object({
+  name: z.string().min(1),
+  categoryId: z.number(),
+  preparationTime: z.number().min(1),
+  servings: z.number().min(1),
+  preparationMethod: z.string().min(1),
+  ingredients: z.string().min(1),
+});
+
+export type CreateRecipeDto = z.infer<typeof CreateRecipeSchema>;
+
+            ```
+          - UpdateRecipeDto.ts
+            ```ts
+import { z } from "zod";
+
+export const UpdateRecipeSchema = z.object({
+  name: z.string().optional(),
+  categoryId: z.number().optional(),
+  preparationTime: z.number().optional(),
+  servings: z.number().optional(),
+  preparationMethod: z.string().optional(),
+  ingredients: z.string().optional(),
+});
+
+export type UpdateRecipeDto = z.infer<typeof UpdateRecipeSchema>;
+
+            ```
+        - RecipeController.ts
+          ```ts
+import { Router } from "express";
+import { authenticateToken } from "../auth/AuthMiddleware";
+import { RecipeService } from "./RecipeService";
+import { CreateRecipeDto } from "./dto/CreateRecipeDto";
+import { UpdateRecipeDto } from "./dto/UpdateRecipeDto";
+
+const router = Router();
+const service = new RecipeService();
+
+router.use(authenticateToken);
+
+router.get("/recipes", async (req, res) => {
+  const recipes = await service.list(req.user!.id);
+  res.json(recipes);
+});
+
+router.get("/recipes/:id", async (req, res) => {
+  const recipe = await service.getById(req.user!.id, +req.params.id);
+  if (!recipe) return res.status(404).json({ error: "Recipe not found" });
+  res.json(recipe);
+});
+
+router.post("/recipes", async (req, res) => {
+  const dto = req.body as CreateRecipeDto;
+  const recipe = await service.create(req.user!.id, dto);
+  res.status(201).json(recipe);
+});
+
+router.put("/recipes/:id", async (req, res) => {
+  const dto = req.body as UpdateRecipeDto;
+  const updated = await service.update(req.user!.id, +req.params.id, dto);
+  res.json(updated);
+});
+
+router.delete("/recipes/:id", async (req, res) => {
+  await service.delete(req.user!.id, +req.params.id);
+  res.status(204).send();
+});
+
+export default router;
+
+          ```
+        - RecipeService.ts
+          ```ts
+import { prisma } from "@/prisma/client";
+import { CreateRecipeDto } from "./dto/CreateRecipeDto";
+import { UpdateRecipeDto } from "./dto/UpdateRecipeDto";
+
+export class RecipeService {
+  async list(userId: number) {
+    return prisma.recipe.findMany({
+      where: { userId },
+      include: { category: true },
+    });
+  }
+
+  async getById(userId: number, id: number) {
+    return prisma.recipe.findFirst({
+      where: { id, userId },
+      include: { category: true },
+    });
+  }
+
+  async create(userId: number, data: CreateRecipeDto) {
+    return prisma.recipe.create({
+      data: {
+        userId,
+        categoryId: data.categoryId,
+        name: data.name,
+        preparationTime: data.preparationTime,
+        servings: data.servings,
+        preparationMethod: data.preparationMethod,
+        ingredients: data.ingredients,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+  }
+
+  async update(userId: number, id: number, data: UpdateRecipeDto) {
+    await prisma.recipe.updateMany({
+      where: { id, userId },
+      data: {
+        categoryId: data.categoryId,
+        name: data.name,
+        preparationTime: data.preparationTime,
+        servings: data.servings,
+        preparationMethod: data.preparationMethod,
+        ingredients: data.ingredients,
+        updatedAt: new Date(),
+      },
+    });
+
+    return { message: "Recipe updated" };
+  }
+
+  async delete(userId: number, id: number) {
+    await prisma.recipe.deleteMany({
+      where: { id, userId },
+    });
+  }
+}
+
+          ```
+      - user/
+        - AuthController.ts
+          ```ts
+import { Router } from "express";
+import { AuthService } from "./AuthService";
+import { authenticateToken } from "../auth/AuthMiddleware";
+import { RegisterDto } from "./dto/RegisterDto";
+import { LoginDto } from "./dto/LoginDto";
+
+const router = Router();
+const service = new AuthService();
+
+router.post("/register", async (req, res) => {
+  try {
+    const user = await service.register(req.body as RegisterDto);
+    res.status(201).json(user);
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+router.post("/login", async (req, res) => {
+  try {
+    const result = await service.login(req.body as LoginDto);
+    res.json(result);
+  } catch (e: any) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+router.post("/logout", authenticateToken, (req, res) => {
+  res
+    .status(200)
+    .json({ message: `User ${req.user?.id} logged out (token discard)` });
+});
+
+export default router;
+
+          ```
+        - AuthService.ts
+          ```ts
+import { prisma } from "@/prisma/client";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import { RegisterDto } from "./dto/RegisterDto";
+import { LoginDto } from "./dto/LoginDto";
+
+export class AuthService {
+  async register(data: RegisterDto) {
+    const { name, login, password } = data;
+
+    const existing = await prisma.user.findUnique({ where: { login } });
+    if (existing) throw new Error("Login already in use");
+
+    const hashed = await bcrypt.hash(password, 10);
+
+    const user = await prisma.user.create({
+      data: {
+        name,
+        login,
+        password: hashed,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+    return user;
+  }
+
+  async login(data: LoginDto) {
+    const { login, password } = data;
+
+    const user = await prisma.user.findUnique({ where: { login } });
+    if (!user) throw new Error("Invalid login");
+
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) throw new Error("Invalid password");
+
+    const token = jwt.sign({ userId: user.id }, "secret", { expiresIn: "1h" });
+
+    return {
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        login: user.login,
+      },
+    };
+  }
+}
+
+          ```
+        - dto/
+          - LoginDto.ts
+            ```ts
+export interface LoginDto {
+  login: string;
+  password: string;
+}
+
+            ```
+          - RegisterDto.ts
+            ```ts
+export interface RegisterDto {
+  name?: string;
+  login: string;
+  password: string;
+}
+
+            ```
+    - prisma/
+      - client.ts
+        ```ts
+import { PrismaClient } from '@prisma/client';
+
+export const prisma = new PrismaClient();
+
+        ```
+    - types/
+      - express.d.ts
+        ```ts
+import { Request } from "express";
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: number;
+      };
+    }
+  }
+}
+
+        ```
+  - tsconfig.json
+    ```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "baseUrl": "./src",
+    "paths": {
+      "@/*": ["*"]
+    }
+  }
+}
+
+    ```
+- docker-compose.yml
+  ```yml
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: receitas_db
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  backend:
+    build: ./backend
+    container_name: backend
+    restart: always
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+    ports:
+      - "3000:3000"
+    command: npm run start:dev
+    depends_on:
+      - mysql
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "5173:5173"
+    command: yarn dev
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
+
+  ```
+- export-project-to-txt.js
+  ```js
+const fs = require("fs");
+const path = require("path");
+
+// Extensões de arquivos que queremos incluir
+const EXTENSIONS = [
+  ".ts", ".tsx", ".js", ".jsx", ".json", ".md", ".html", ".css", ".env", ".yml"
+];
+
+// Diretórios que não queremos exportar
+const IGNORED_DIRS = ["node_modules", "dist", "build", ".git", ".vscode"];
+
+// Função para pular arquivos de teste
+function isTestFile(file) {
+  return file.endsWith(".spec.ts") || file.endsWith(".spec.tsx");
+}
+
+// Caminhada recursiva
+function walk(dir, depth = 0) {
+  const files = fs.readdirSync(dir);
+  let output = "";
+
+  for (const file of files) {
+    const fullPath = path.join(dir, file);
+    const stat = fs.statSync(fullPath);
+
+    if (stat.isDirectory()) {
+      if (IGNORED_DIRS.includes(file)) continue;
+
+      output += `${"  ".repeat(depth)}- ${file}/\n`;
+      output += walk(fullPath, depth + 1);
+    } else {
+      const ext = path.extname(file);
+      if (!EXTENSIONS.includes(ext)) continue;
+      if (file === "package-lock.json") continue;
+      if (isTestFile(file)) continue;
+
+      const indent = "  ".repeat(depth);
+      const content = fs.readFileSync(fullPath, "utf-8");
+      output += `${indent}- ${file}\n`;
+      output += `${indent}  \`\`\`${ext.substring(1)}\n${content}\n${indent}  \`\`\`\n`;
+    }
+  }
+
+  return output;
+}
+
+// Caminho base (pasta raiz do projeto)
+const root = path.resolve(".");
+const output = walk(root);
+fs.writeFileSync("project-export.txt", output);
+
+console.log("✅ Arquivo 'project-export.txt' criado com sucesso!");
+
+  ```
+- frontend/
+  - index.html
+    ```html
+<!DOCTYPE html>
+<html lang="">
+  <head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="/favicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vite App</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
+
+    ```
+  - jsconfig.json
+    ```json
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist"]
+}
+
+    ```
+  - package.json
+    ```json
+{
+  "name": "frontend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@mdi/font": "^7.4.47",
+    "axios": "^1.10.0",
+    "sass": "^1.89.2",
+    "sass-loader": "^13.0.2",
+    "vue": "^3.5.13",
+    "vue-router": "4",
+    "vuetify": "3.5.4"
+  },
+  "devDependencies": {
+    "@types/vue-router": "^2.0.0",
+    "@vitejs/plugin-vue": "^5.2.3",
+    "vite": "^6.2.4",
+    "vite-plugin-vue-devtools": "^7.7.2",
+    "vite-plugin-vuetify": "^2.1.1"
+  }
+}
+
+    ```
+  - public/
+  - src/
+    - assets/
+      - base.css
+        ```css
+/* color palette from <https://github.com/vuejs/theme> */
+:root {
+  --vt-c-white: #ffffff;
+  --vt-c-white-soft: #f8f8f8;
+  --vt-c-white-mute: #f2f2f2;
+
+  --vt-c-black: #181818;
+  --vt-c-black-soft: #222222;
+  --vt-c-black-mute: #282828;
+
+  --vt-c-indigo: #2c3e50;
+
+  --vt-c-divider-light-1: rgba(60, 60, 60, 0.29);
+  --vt-c-divider-light-2: rgba(60, 60, 60, 0.12);
+  --vt-c-divider-dark-1: rgba(84, 84, 84, 0.65);
+  --vt-c-divider-dark-2: rgba(84, 84, 84, 0.48);
+
+  --vt-c-text-light-1: var(--vt-c-indigo);
+  --vt-c-text-light-2: rgba(60, 60, 60, 0.66);
+  --vt-c-text-dark-1: var(--vt-c-white);
+  --vt-c-text-dark-2: rgba(235, 235, 235, 0.64);
+}
+
+/* semantic color variables for this project */
+:root {
+  --color-background: var(--vt-c-white);
+  --color-background-soft: var(--vt-c-white-soft);
+  --color-background-mute: var(--vt-c-white-mute);
+
+  --color-border: var(--vt-c-divider-light-2);
+  --color-border-hover: var(--vt-c-divider-light-1);
+
+  --color-heading: var(--vt-c-text-light-1);
+  --color-text: var(--vt-c-text-light-1);
+
+  --section-gap: 160px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: var(--vt-c-black);
+    --color-background-soft: var(--vt-c-black-soft);
+    --color-background-mute: var(--vt-c-black-mute);
+
+    --color-border: var(--vt-c-divider-dark-2);
+    --color-border-hover: var(--vt-c-divider-dark-1);
+
+    --color-heading: var(--vt-c-text-dark-1);
+    --color-text: var(--vt-c-text-dark-2);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  font-weight: normal;
+}
+
+body {
+  min-height: 100vh;
+  color: var(--color-text);
+  background: var(--color-background);
+  transition:
+    color 0.5s,
+    background-color 0.5s;
+  line-height: 1.6;
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    Oxygen,
+    Ubuntu,
+    Cantarell,
+    'Fira Sans',
+    'Droid Sans',
+    'Helvetica Neue',
+    sans-serif;
+  font-size: 15px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+        ```
+      - main.css
+        ```css
+@import './base.css';
+
+#app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-weight: normal;
+}
+
+a,
+.green {
+  text-decoration: none;
+  color: hsla(160, 100%, 37%, 1);
+  transition: 0.4s;
+  padding: 3px;
+}
+
+@media (hover: hover) {
+  a:hover {
+    background-color: hsla(160, 100%, 37%, 0.2);
+  }
+}
+
+@media (min-width: 1024px) {
+  body {
+    display: flex;
+    place-items: center;
+  }
+
+  #app {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 0 2rem;
+  }
+}
+
+        ```
+    - main.ts
+      ```ts
+import { createApp } from "vue";
+import App from "./App.vue";
+import { router } from "./router";
+import "vuetify/styles";
+import { createVuetify } from "vuetify";
+import { aliases, mdi } from "vuetify/iconsets/mdi";
+import "@mdi/font/css/materialdesignicons.css";
+
+const vuetify = createVuetify({
+  icons: {
+    defaultSet: "mdi",
+    aliases,
+    sets: { mdi },
+  },
+});
+
+const app = createApp(App);
+app.use(router);
+app.use(vuetify);
+app.mount("#app");
+
+      ```
+    - router/
+      - index.ts
+        ```ts
+import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
+import LoginView from "@/views/LoginView.vue";
+import RegisterView from "@/views/RegisterView.vue";
+import DashboardView from "@/views/DashboardView.vue";
+
+const routes: RouteRecordRaw[] = [
+  { path: "/login", component: LoginView },
+  { path: "/register", component: RegisterView },
+  { path: "/dashboard", component: DashboardView },
+  { path: "/", redirect: "/login" },
+];
+
+export const router = createRouter({
+  history: createWebHistory(),
+  routes,
+});
+
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('token');
+  if (to.path === '/dashboard' && !token) {
+    next('/login');
+  } else {
+    next();
+  }
+});
+
+        ```
+    - services/
+      - authService.ts
+        ```ts
+import axios from "axios";
+
+const API_URL = "http://localhost:3000";
+
+export function loginUser(data: { login: string; password: string }) {
+  return axios.post(`${API_URL}/login`, data);
+}
+
+export function registerUser(data: { name: string; login: string; password: string }) {
+  return axios.post(`${API_URL}/register`, data);
+}
+
+        ```
+      - recipeService.ts
+        ```ts
+import axios from "axios";
+
+const API_URL = "http://localhost:3000/recipes";
+
+function getAuthHeaders() {
+  const token = localStorage.getItem("token");
+  return {
+    Authorization: `Bearer ${token}`,
+  };
+}
+
+export async function getAllRecipes() {
+  return (await axios.get(API_URL, { headers: getAuthHeaders() })).data;
+}
+
+export async function createRecipe(data: any) {
+  return (await axios.post(API_URL, data, { headers: getAuthHeaders() })).data;
+}
+
+export async function updateRecipe(data: any) {
+  return (await axios.put(`${API_URL}/${data.id}`, data, { headers: getAuthHeaders() })).data;
+}
+
+export async function deleteRecipeById(id: number) {
+  return await axios.delete(`${API_URL}/${id}`, { headers: getAuthHeaders() });
+}
+
+        ```
+    - views/
+  - vite.config.js
+    ```js
+import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
+import vuetify from "vite-plugin-vuetify";
+import { fileURLToPath, URL } from "node:url";
+
+export default defineConfig({
+  plugins: [vue(), vuetify({ autoImport: true })],
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
+  },
+});
+
+    ```
+- README.md
+  ```md
+# frontend
+
+This template should help get you started developing with Vue 3 in Vite.
+
+## Recommended IDE Setup
+
+[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+
+## Customize configuration
+
+See [Vite Configuration Reference](https://vite.dev/config/).
+
+## Project Setup
+
+```sh
+npm install
+```
+
+### Compile and Hot-Reload for Development
+
+```sh
+npm run dev
+```
+
+### Compile and Minify for Production
+
+```sh
+npm run build
+```
+
+  ```
