@@ -11,29 +11,25 @@
       </v-col>
     </v-row>
 
+    <v-btn color="secondary" @click="goToCategories" class="mb-4">
+      <v-icon start>mdi-format-list-bulleted</v-icon>
+      Categorias
+    </v-btn>
+
     <v-row justify="end" class="mb-4">
       <v-col cols="auto">
         <v-btn color="primary" @click="showDialog = true">Nova Receita</v-btn>
       </v-col>
     </v-row>
 
-    <!-- Alerta de erro -->
     <v-alert v-if="error" type="error" class="mb-4" density="comfortable">
       {{ error }}
     </v-alert>
 
     <v-row>
-      <v-col
-        v-for="recipe in recipes"
-        :key="recipe.id"
-        cols="12"
-        md="6"
-        lg="4"
-      >
+      <v-col v-for="recipe in recipes" :key="recipe.id" cols="12" md="6" lg="4">
         <v-card class="mb-4">
-          <v-card-title class="text-h6">
-            {{ recipe.name }}
-          </v-card-title>
+          <v-card-title class="text-h6">{{ recipe.name }}</v-card-title>
           <v-card-subtitle>
             {{ recipe.servings }} porções - {{ recipe.preparationTime }} min
           </v-card-subtitle>
@@ -54,29 +50,12 @@
         <v-card-text>
           <v-form @submit.prevent="save">
             <v-text-field v-model="form.name" label="Nome" required />
-            <v-text-field
-              v-model="form.servings"
-              label="Porções"
-              type="number"
-              required
-            />
-            <v-text-field
-              v-model="form.preparationTime"
-              label="Tempo de preparo (min)"
-              type="number"
-              required
-            />
-            <v-textarea
-              v-model="form.ingredients"
-              label="Ingredientes"
-              rows="3"
-            />
-            <v-textarea
-              v-model="form.preparationMethod"
-              label="Modo de preparo"
-              rows="4"
-              required
-            />
+            <v-select v-model="form.categoryId" :items="categories" item-title="name" item-value="id" label="Categoria"
+              required />
+            <v-text-field v-model="form.servings" label="Porções" type="number" required />
+            <v-text-field v-model="form.preparationTime" label="Tempo de preparo (min)" type="number" required />
+            <v-textarea v-model="form.ingredients" label="Ingredientes" rows="3" />
+            <v-textarea v-model="form.preparationMethod" label="Modo de preparo" rows="4" required />
             <v-btn type="submit" color="primary" class="mt-3" block>
               {{ editing ? 'Atualizar' : 'Salvar' }}
             </v-btn>
@@ -96,15 +75,19 @@ import {
   updateRecipe,
   deleteRecipeById
 } from '@/services/recipeService';
+import { getAllCategories } from '@/services/categoryService';
 
 const router = useRouter();
 const recipes = ref<any[]>([]);
+const categories = ref<any[]>([]);
 const error = ref('');
 const showDialog = ref(false);
 const editing = ref(false);
+
 const form = ref({
   id: null,
   name: '',
+  categoryId: null,
   servings: 1,
   preparationTime: 10,
   preparationMethod: '',
@@ -114,13 +97,14 @@ const form = ref({
 async function load() {
   try {
     recipes.value = await getAllRecipes();
+    categories.value = await getAllCategories();
   } catch (err: any) {
-    error.value = err.response?.data?.error || 'Erro ao carregar receitas';
+    error.value = err.response?.data?.error || 'Erro ao carregar dados';
   }
 }
 
 function edit(recipe: any) {
-  form.value = { ...recipe };
+  form.value = { ...recipe, categoryId: recipe.category?.id ?? recipe.categoryId };
   editing.value = true;
   showDialog.value = true;
 }
@@ -129,6 +113,7 @@ function resetForm() {
   form.value = {
     id: null,
     name: '',
+    categoryId: null,
     servings: 1,
     preparationTime: 10,
     preparationMethod: '',
@@ -164,6 +149,10 @@ async function remove(id: number) {
 function handleLogout() {
   localStorage.removeItem('token');
   router.push('/login');
+}
+
+function goToCategories() {
+  router.push("/categories");
 }
 
 onMounted(() => load());

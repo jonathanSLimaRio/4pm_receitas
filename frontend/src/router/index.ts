@@ -2,11 +2,13 @@ import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
 import LoginView from "@/views/LoginView.vue";
 import RegisterView from "@/views/RegisterView.vue";
 import DashboardView from "@/views/DashboardView.vue";
+import CategoryView from "@/views/CategoryView.vue";
 
 const routes: RouteRecordRaw[] = [
   { path: "/login", component: LoginView },
   { path: "/register", component: RegisterView },
   { path: "/dashboard", component: DashboardView },
+  { path: "/categories", component: CategoryView },
   { path: "/", redirect: "/login" },
 ];
 
