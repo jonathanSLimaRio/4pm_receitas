@@ -48,6 +48,8 @@
             {{ recipe.preparationMethod }}
           </v-card-text>
           <v-card-actions>
+            <v-btn icon="mdi-eye" @click="view(recipe)" />
+            <v-btn icon="mdi-printer" @click="printRecipe(recipe)" />
             <v-btn icon="mdi-pencil" @click="edit(recipe)" />
             <v-btn icon="mdi-delete" color="error" @click="remove(recipe.id)" />
           </v-card-actions>
@@ -74,6 +76,28 @@
         </v-card-text>
       </v-card>
     </v-dialog>
+
+    <v-dialog v-model="showViewDialog" max-width="600">
+      <v-card>
+        <v-card-title class="text-h6 d-flex justify-space-between align-center">
+          {{ selectedRecipe?.name }}
+          <v-btn icon @click="printRecipe(selectedRecipe)">
+            <v-icon>mdi-printer</v-icon>
+          </v-btn>
+        </v-card-title>
+        <v-card-subtitle>
+          {{ selectedRecipe?.servings }} porções - {{ selectedRecipe?.preparationTime }} min
+        </v-card-subtitle>
+        <v-card-text>
+          <strong>Ingredientes:</strong>
+          <div style="white-space: pre-line;">{{ selectedRecipe?.ingredients }}</div>
+          <br />
+          <strong>Modo de Preparo:</strong>
+          <div style="white-space: pre-line;">{{ selectedRecipe?.preparationMethod }}</div>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+
   </v-container>
 </template>
 
@@ -110,6 +134,8 @@ const searchQuery = ref('');
 let searchTimeout: ReturnType<typeof setTimeout>;
 const selectedCategory = ref<number | null>(null);
 
+const showViewDialog = ref(false);
+const selectedRecipe = ref<any | null>(null);
 
 async function load() {
   try {
@@ -188,6 +214,34 @@ function handleSearch() {
       error.value = err.response?.data?.error || "Search failed";
     }
   }, 300);
+}
+
+function view(recipe: any) {
+  selectedRecipe.value = recipe;
+  showViewDialog.value = true;
+}
+
+function printRecipe(recipe: any) {
+  const printContent = `
+    <div>
+      <h2>${recipe.name}</h2>
+      <p><strong>Porções:</strong> ${recipe.servings}</p>
+      <p><strong>Tempo de preparo:</strong> ${recipe.preparationTime} minutos</p>
+      <p><strong>Ingredientes:</strong><br/>${recipe.ingredients?.replace(/\n/g, "<br/>")}</p>
+      <p><strong>Modo de Preparo:</strong><br/>${recipe.preparationMethod?.replace(/\n/g, "<br/>")}</p>
+    </div>
+  `;
+
+  const printWindow = window.open('', '', 'width=800,height=600');
+  if (printWindow) {
+    printWindow.document.write('<html><head><title>Imprimir Receita</title></head><body>');
+    printWindow.document.write(printContent);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
+  }
 }
 
 onMounted(() => load());
