@@ -1,5 +1,5 @@
 // src/modules/user/AuthService.ts
-import { prisma } from "@/prisma/client";
+import { prisma } from "../../prisma/client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { RegisterDto } from "./dto/RegisterDto";

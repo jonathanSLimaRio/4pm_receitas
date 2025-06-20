@@ -1,4 +1,4 @@
-import { prisma } from "@/prisma/client";
+import { prisma } from "../../prisma/client";
 import { CreateRecipeDto } from "./dto/CreateRecipeDto";
 import { UpdateRecipeDto } from "./dto/UpdateRecipeDto";
 

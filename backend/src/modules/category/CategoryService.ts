@@ -1,4 +1,4 @@
-import { prisma } from "@/prisma/client";
+import { prisma } from "../../prisma/client";
 import { CreateCategoryDto } from "./dto/CreateCategoryDto";
 import { UpdateCategoryDto } from "./dto/UpdateCategoryDto";
 
