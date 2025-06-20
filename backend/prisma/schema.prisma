@@ -8,34 +8,34 @@ datasource db {
 }
 
 model User {
-  id         Int      @id @default(autoincrement())
-  name       String?  @map("name")
-  login      String   @unique
-  password      String   @map("password")
-  createdAt   DateTime @map("criado_em")
-  updatedAt DateTime @map("alterado_em")
-  Recipe     Recipe[]
+  id        Int       @id @default(autoincrement())
+  name      String?
+  login     String    @unique
+  password  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  recipes   Recipe[]
 
-  @@map("usuarios")
+  @@map("users")
 }
 
 model Category {
   id      Int      @id @default(autoincrement())
-  name    String?  @unique
+  name    String   @unique
   recipes Recipe[]
 }
 
 model Recipe {
-  id                Int      @id @default(autoincrement())
-  userId            Int      @map("id_usuarios")
-  categoryId        Int?     @map("id_categorias")
+  id                Int       @id @default(autoincrement())
+  userId            Int
+  categoryId        Int?
   name              String?
-  preparationTime   Int?     @map("tempo_preparo_minutos")
+  preparationTime   Int?
   servings          Int?
-  preparationMethod String   @map("modo_preparo")
+  preparationMethod String
   ingredients       String?
-  createdAt         DateTime @map("criado_em")
-  updatedAt         DateTime @map("alterado_em")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   user     User      @relation(fields: [userId], references: [id])
   category Category? @relation(fields: [categoryId], references: [id])
