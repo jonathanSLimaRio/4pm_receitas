@@ -55,4 +55,40 @@ export class RecipeService {
       where: { id, userId },
     });
   }
+
+  async search(userId: number, query?: string, categoryId?: number) {
+    const conditions: any = {
+      userId,
+    };
+
+    const andConditions = [];
+
+    if (query?.trim()) {
+      andConditions.push({
+        OR: [
+          { name: { contains: query } },
+          { ingredients: { not: null, contains: query } },
+          {
+            preparationMethod: {
+              not: null,
+              contains: query,
+            },
+          },
+        ],
+      });
+    }
+
+    if (typeof categoryId === "number" && !isNaN(categoryId)) {
+      andConditions.push({ categoryId });
+    }
+
+    if (andConditions.length > 0) {
+      conditions.AND = andConditions;
+    }
+
+    return prisma.recipe.findMany({
+      where: conditions,
+      include: { category: true },
+    });
+  }
 }

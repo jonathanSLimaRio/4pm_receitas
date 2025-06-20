@@ -19,9 +19,31 @@ export async function createRecipe(data: any) {
 }
 
 export async function updateRecipe(data: any) {
-  return (await axios.put(`${API_URL}/${data.id}`, data, { headers: getAuthHeaders() })).data;
+  return (
+    await axios.put(`${API_URL}/${data.id}`, data, {
+      headers: getAuthHeaders(),
+    })
+  ).data;
 }
 
 export async function deleteRecipeById(id: number) {
   return await axios.delete(`${API_URL}/${id}`, { headers: getAuthHeaders() });
+}
+
+export async function searchRecipes(query: string, categoryId?: number | null) {
+  const params = new URLSearchParams();
+
+  if (query?.trim()) {
+    params.append("q", query.trim());
+  }
+
+  if (typeof categoryId === "number" && !isNaN(categoryId)) {
+    params.append("categoryId", categoryId.toString());
+  }
+
+  return (
+    await axios.get(`${API_URL}?${params.toString()}`, {
+      headers: getAuthHeaders(),
+    })
+  ).data;
 }

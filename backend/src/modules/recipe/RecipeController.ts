@@ -10,6 +10,16 @@ const service = new RecipeService();
 router.use(authenticateToken);
 
 router.get("/recipes", async (req, res) => {
+  const query = req.query.q?.toString().trim();
+  const categoryId = req.query.categoryId
+    ? Number(req.query.categoryId)
+    : undefined;
+
+  if (query?.length || categoryId) {
+    const results = await service.search(req.user!.id, query || "", categoryId);
+    return res.json(results);
+  }
+
   const recipes = await service.list(req.user!.id);
   res.json(recipes);
 });

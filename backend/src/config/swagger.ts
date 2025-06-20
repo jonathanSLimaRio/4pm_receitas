@@ -113,8 +113,24 @@ const swaggerDocument = {
     "/recipes": {
       get: {
         tags: ["Recipe"],
-        summary: "List user's recipes",
+        summary: "List or search user's recipes",
         security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: "q",
+            in: "query",
+            description: "Search term for recipe name",
+            required: false,
+            schema: { type: "string" },
+          },
+          {
+            name: "categoryId",
+            in: "query",
+            description: "Filter by category ID",
+            required: false,
+            schema: { type: "integer" },
+          },
+        ],
         responses: {
           "200": { description: "Recipe list" },
         },

@@ -15,7 +15,7 @@
         <v-alert v-if="error" type="error" class="mb-4">{{ error }}</v-alert>
         <v-btn color="primary" @click="openDialog()">Nova Categoria</v-btn>
 
-        <v-row>
+        <v-row class="mt-4">
             <v-col v-for="category in categories" :key="category.id" cols="12" md="4" lg="3">
                 <v-card>
                     <v-card-title>{{ category.name }}</v-card-title>

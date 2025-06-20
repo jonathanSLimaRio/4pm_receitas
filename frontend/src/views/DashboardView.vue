@@ -26,6 +26,17 @@
       {{ error }}
     </v-alert>
 
+    <v-row class="mb-4" align="center">
+      <v-col cols="12" md="4">
+        <v-text-field v-model="searchQuery" label="Search recipe" prepend-inner-icon="mdi-magnify" clearable
+          @input="handleSearch" />
+      </v-col>
+      <v-col cols="12" md="4">
+        <v-select v-model="selectedCategory" :items="categories" item-title="name" item-value="id"
+          label="Filter by category" clearable @update:modelValue="handleSearch" />
+      </v-col>
+    </v-row>
+
     <v-row>
       <v-col v-for="recipe in recipes" :key="recipe.id" cols="12" md="6" lg="4">
         <v-card class="mb-4">
@@ -73,7 +84,8 @@ import {
   getAllRecipes,
   createRecipe,
   updateRecipe,
-  deleteRecipeById
+  deleteRecipeById,
+  searchRecipes
 } from '@/services/recipeService';
 import { getAllCategories } from '@/services/categoryService';
 
@@ -93,6 +105,11 @@ const form = ref({
   preparationMethod: '',
   ingredients: '',
 });
+
+const searchQuery = ref('');
+let searchTimeout: ReturnType<typeof setTimeout>;
+const selectedCategory = ref<number | null>(null);
+
 
 async function load() {
   try {
@@ -153,6 +170,24 @@ function handleLogout() {
 
 function goToCategories() {
   router.push("/categories");
+}
+
+function handleSearch() {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(async () => {
+    try {
+      if (searchQuery.value.trim() || selectedCategory.value) {
+        const params = new URLSearchParams();
+        if (searchQuery.value.trim()) params.append("q", searchQuery.value.trim());
+        if (selectedCategory.value) params.append("categoryId", selectedCategory.value.toString());
+        recipes.value = await searchRecipes(searchQuery.value, selectedCategory.value);
+      } else {
+        recipes.value = await getAllRecipes();
+      }
+    } catch (err: any) {
+      error.value = err.response?.data?.error || "Search failed";
+    }
+  }, 300);
 }
 
 onMounted(() => load());
