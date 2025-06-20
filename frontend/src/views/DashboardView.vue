@@ -69,7 +69,7 @@
             <v-text-field v-model="form.preparationTime" label="Tempo de preparo (min)" type="number" required />
             <v-textarea v-model="form.ingredients" label="Ingredientes" rows="3" />
             <v-textarea v-model="form.preparationMethod" label="Modo de preparo" rows="4" required />
-            <v-btn type="submit" color="primary" class="mt-3" block>
+            <v-btn type="submit" color="primary" class="mt-3" block :disabled="!isFormValid">
               {{ editing ? 'Atualizar' : 'Salvar' }}
             </v-btn>
           </v-form>
@@ -102,7 +102,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   getAllRecipes,
@@ -243,6 +243,16 @@ function printRecipe(recipe: any) {
     printWindow.close();
   }
 }
+
+const isFormValid = computed(() => {
+  return (
+    form.value.name.trim() &&
+    form.value.categoryId !== null &&
+    form.value.servings > 0 &&
+    form.value.preparationTime > 0 &&
+    form.value.preparationMethod.trim()
+  );
+});
 
 onMounted(() => load());
 </script>
