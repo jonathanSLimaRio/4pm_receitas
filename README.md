@@ -113,6 +113,13 @@ Disponível via Swagger:
 http://localhost:3000/api-docs
 ```
 
+## 🧪 SAÚDE da API
+
+```
+  console.log("Health endpoint at http://localhost:3000/health");
+  console.log("Health DB endpoint at http://localhost:3000/health/db");
+```
+
 ---
 
 ## 🛠️ Recomendações de IDE
